@@ -1,0 +1,51 @@
+Bootstrap: docker
+From: alpine:latest
+
+%labels
+    Author "Antton and ChatGPT"
+    Version "1.0"
+    Description "Singularity container for GORpipe on Alpine Linux"
+
+%post
+    # Update the Alpine packages and install necessary dependencies
+    apk update && apk add --no-cache bash openjdk11-jre wget curl git
+
+    # Set environment variables
+    export GOR_VERSION="3.14.8"  # Replace with the latest version if needed
+
+    # Download and install GORpipe
+    cd /opt
+    wget https://github.com/gorpipe/gor/releases/download/v$GOR_VERSION/gorscripts-$GOR_VERSION-dist.zip
+    unzip gorscripts-$GOR_VERSION-dist.zip
+    rm gorscripts-$GOR_VERSION-dist.zip
+
+    # Make the GORpipe scripts executable
+    chmod +x /opt/gorscripts-$GOR_VERSION-dist/bin/gorpipe
+
+    # Create a symbolic link for easy access to GORpipe
+    ln -s /opt/gorscripts-$GOR_VERSION-dist/bin/gorpipe /usr/local/bin/gorpipe
+
+    # Install GOR test data
+    mkdir -p /opt/gor-test-data
+    cd /opt/gor-test-data
+    git init
+    git remote add origin https://github.com/gorpipe/gor-test-data.git
+    git fetch --all
+    git checkout origin/master -- gor/dbsnp_test.gor
+    cd /
+
+%environment
+    # Set environment variables for GORpipe
+    export PATH=/usr/local/bin:$PATH
+    export JAVA_HOME=/usr/lib/jvm/java-11-openjdk
+
+%runscript
+    # Define the default action when the container starts
+    echo "Printing folder structure:"
+    find / -type d -print | sed -e 's;[^/]*/;|____;g;s;____|; |;g'
+
+    exec gorpipe "$@"
+
+%test
+    # Test that GORpipe is working correctly
+    gorpipe "gor opt/gor-test-data/gor/dbsnp_test.gor | top 10"

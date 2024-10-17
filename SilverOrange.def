@@ -41,9 +41,6 @@ From: alpine:latest
 
 %runscript
     # Define the default action when the container starts
-    echo "Printing folder structure:"
-    find / -type d -print | sed -e 's;[^/]*/;|____;g;s;____|; |;g'
-
     exec gorpipe "$@"
 
 %test
